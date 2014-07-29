@@ -735,12 +735,12 @@ cbor::string cbor::debug (const cbor &in) {
 		}
 		break;
 	case cbor::TYPE_FLOAT:
-		if (isinf (in.m_float)) {
+		if (std::isinf (in.m_float)) {
 			if (in.m_float < 0) {
 				out << "-";
 			}
 			out << "Infinity";
-		} else if (isnan (in.m_float)) {
+		} else if (std::isnan (in.m_float)) {
 			out << "NaN";
 		} else {
 			out << std::showpoint << in.m_float;
