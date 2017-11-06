@@ -23,10 +23,10 @@ public:
         TYPE_SIMPLE,
         TYPE_FLOAT
     };
-    typedef std::vector <unsigned char> binary;
+    typedef std::vector<unsigned char> binary;
     typedef std::string string;
-    typedef std::vector <cbor> array;
-    typedef std::map <cbor, cbor> map;
+    typedef std::vector<cbor> array;
+    typedef std::map<cbor, cbor> map;
     enum simple {
         SIMPLE_FALSE = 20,
         SIMPLE_TRUE,
@@ -35,29 +35,29 @@ public:
         null = SIMPLE_NULL,
         undefined = SIMPLE_UNDEFINED
     };
-    
-    cbor (unsigned short value);
+
     cbor (unsigned value);
-    cbor (unsigned long value);
-    cbor (unsigned long long value);
-    cbor (short value);
+    cbor (uint64_t value);
     cbor (int value);
-    cbor (long value);
-    cbor (long long value);
+    cbor (int64_t value);
     cbor (const cbor::binary &value);
     cbor (const cbor::string &value);
     cbor (const char *value);
     cbor (const cbor::array &value);
     cbor (const cbor::map &value);
-    static cbor tagged (unsigned long long tag, const cbor &value);
+    static cbor tagged(uint64_t tag, const cbor &value);
     cbor (cbor::simple value = cbor::SIMPLE_UNDEFINED);
     cbor (bool value);
     cbor (float value);
     cbor (double value);
-#if __cplusplus >= 201103
     cbor (std::nullptr_t);
-#endif
-    
+    cbor(const cbor&);
+    cbor(cbor&&);
+    ~cbor();
+
+    cbor& operator = (const cbor&);
+    cbor& operator = (cbor&&);
+
     bool is_unsigned () const;
     bool is_signed () const;
     bool is_int () const;
@@ -83,14 +83,8 @@ public:
     bool to_bool () const;
     double to_float () const;
     
-    operator unsigned short () const;
     operator unsigned () const;
-    operator unsigned long () const;
-    operator unsigned long long () const;
-    operator short () const;
     operator int () const;
-    operator long () const;
-    operator long long () const;
     operator cbor::binary () const;
     operator cbor::string () const;
     operator cbor::array () const;
@@ -116,14 +110,24 @@ public:
     bool operator != (const cbor &other) const;
     
     bool operator < (const cbor &other) const;
+    void swap(cbor &other);
 private:
     cbor::type_t m_type;
-    union {
-        uint64_t m_value;
+    union
+    {
+        uint64_t m_unsigned;
+        int64_t m_integer;
         double m_float;
     };
-    cbor::binary m_binary;
-    cbor::string m_string;
-    cbor::array m_array;
-    cbor::map m_map;
+    union
+    {
+        cbor::binary *m_binary;
+        cbor::string *m_string;
+        cbor::array *m_array;
+        cbor::map *m_map;
+    };
+
+    void destroy();
 };
+
+void swap(cbor& left, cbor& right);
