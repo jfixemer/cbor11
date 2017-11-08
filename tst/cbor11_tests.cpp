@@ -34,7 +34,7 @@ int main(int argc, char **argv)
     std::cout << cbor::debug (item) << std::endl;
 
     // Encode
-    cbor::binary data = cbor::encode (item);
+    cbor::binary data = cbor::encode(item);
 
     // Decode (if invalid data is given cbor::undefined is returned)
     item = cbor::decode(data);
