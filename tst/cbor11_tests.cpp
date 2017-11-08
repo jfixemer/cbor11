@@ -1,18 +1,19 @@
 #include "cbor11.h"
 #include <iostream>
+#include <string>
+#include <utility>
 
-int test_incomplete_data()
+bool test_incomplete_data()
 {
     unsigned char data[] = {0x18, 0xFF, 0xFF};
-    cbor::binary bin{std::begin(data), std::end(data)};
+    cbor::binary bin {std::begin(data), std::end(data)};
     auto res = cbor::decode(bin);
-    return cbor::validate(res) | !res.is_undefined();
+    return !cbor::validate(res) && res.is_undefined();
 }
 
-int main(int argc, char **argv)
+bool test_serialization_deserialization()
 {
-    // Create complicated CBOR with simple code thanks to C++11
-    cbor item = cbor::array {
+    const cbor item = cbor::array {
             12,
             -12,
             "Hello",
@@ -32,15 +33,29 @@ int main(int argc, char **argv)
 
     // Convert to diagnostic notation for easy debugging
     std::cout << cbor::debug (item) << std::endl;
-
     // Encode
     cbor::binary data = cbor::encode(item);
-
     // Decode (if invalid data is given cbor::undefined is returned)
-    item = cbor::decode(data);
+    const auto output = cbor::decode(data);
+    return !output.is_undefined();
+}
 
-    int ret = 0;
-    ret |= item != item;
-    ret |= test_incomplete_data();
-    return ret;
+int main(int argc, char **argv)
+{
+    if(argc < 2)
+        return -1;
+
+    std::pair<std::string, bool(*)()> tests[] =
+    {
+        { "serialize_deserialize_complex_structure", &test_serialization_deserialization, },
+        { "test_incomplete_data", &test_incomplete_data }
+    };
+
+    for(int i = 0; i < sizeof(tests); i++) {
+        if(tests[i].first == argv[1]) {
+            return !tests[i].second();
+        }
+    }
+
+    return -1;
 }

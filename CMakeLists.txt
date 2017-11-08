@@ -13,7 +13,8 @@ if(ENABLE_ASAN)
     target_link_libraries(cbor11 INTERFACE "-fsanitize=address,undefined")
 endif()
 
-add_test(cbor11 cbor11-tests)
+add_test(incomplete_data cbor11-tests "test_incomplete_data")
+add_test(complex cbor11-tests "serialize_deserialize_complex_structure")
 
 install (FILES cbor11.h DESTINATION "include/cbor11")
 install (
