@@ -10,6 +10,7 @@
 #if __cplusplus >= 201103
 #include <initializer_list>
 #endif
+
 class cbor {
 public:
     enum type_t {
@@ -109,7 +110,11 @@ public:
     bool operator == (const cbor &other) const;
     bool operator != (const cbor &other) const;
     
-    bool operator < (const cbor &other) const;
+    bool operator <(const cbor &other) const;
+    bool operator <=(cbor const &other) const;
+    bool operator >(cbor const &other) const;
+    bool operator >=(cbor const &other) const;
+
     void swap(cbor &other);
 private:
     cbor::type_t m_type;
@@ -131,3 +136,69 @@ private:
 };
 
 void swap(cbor& left, cbor& right);
+
+// Trivial inline function implementations
+
+inline cbor::operator unsigned() const {
+    return to_unsigned();
+}
+
+inline cbor::operator int() const {
+    return to_signed();
+}
+
+inline cbor::operator cbor::binary const &() const {
+    return to_binary();
+}
+
+inline cbor::operator cbor::string const &() const {
+    return to_string();
+}
+
+inline cbor::operator cbor::array const &() const {
+    return to_array();
+}
+
+inline cbor::operator cbor::map const &() const {
+    return to_map();
+}
+
+inline cbor::operator cbor::simple() const {
+    return to_simple();
+}
+
+inline cbor::operator bool() const {
+    return to_bool();
+}
+
+inline cbor::operator double() const {
+    return to_float();
+}
+
+inline cbor::type_t cbor::type() const {
+    return m_type;
+}
+
+inline bool cbor::operator !=(cbor const &other) const {
+    return !(*this == other);
+}
+
+inline bool cbor::operator <=(cbor const &other) const {
+    return !(other < *this);
+}
+
+inline bool cbor::operator >(cbor const &other) const {
+    return other < *this;
+}
+
+inline bool cbor::operator >=(cbor const &other) const {
+    return !(*this < other);
+}
+
+inline cbor::~cbor() {
+    destroy();
+}
+
+inline void swap(cbor &left, cbor &right) {
+    left.swap(right);
+}

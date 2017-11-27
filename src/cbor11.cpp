@@ -66,10 +66,6 @@ cbor::cbor(cbor&& other) : m_type(other.m_type), m_unsigned(other.m_unsigned), m
     other.m_binary = nullptr;
 }
 
-cbor::~cbor() {
-    destroy();
-}
-
 cbor& cbor::operator = (const cbor& other) {
     if(this == &other) {
         return *this;
@@ -284,46 +280,6 @@ double cbor::to_float() const {
     }
 }
 
-cbor::operator unsigned() const {
-    return to_unsigned();
-}
-
-cbor::operator int() const {
-    return to_signed();
-}
-
-cbor::operator cbor::binary const &() const {
-    return to_binary();
-}
-
-cbor::operator cbor::string const &() const {
-    return to_string();
-}
-
-cbor::operator cbor::array const &() const {
-    return to_array();
-}
-
-cbor::operator cbor::map const &() const {
-    return to_map();
-}
-
-cbor::operator cbor::simple() const {
-    return to_simple();
-}
-
-cbor::operator bool() const {
-    return to_bool();
-}
-
-cbor::operator double() const {
-    return to_float();
-}
-
-cbor::type_t cbor::type() const {
-    return m_type;
-}
-
 uint64_t cbor::tag() const {
     switch (m_type) {
     case cbor::TYPE_TAGGED:
@@ -390,10 +346,6 @@ bool cbor::operator == (const cbor &other) const {
     default:
         return m_unsigned == other.m_unsigned;
     }
-}
-
-bool cbor::operator != (const cbor &other) const {
-    return !(*this == other);
 }
 
 static void read_uint(std::istream &in, int &major, int &minor, uint64_t &value) {
@@ -882,8 +834,4 @@ void cbor::destroy()
         default:
             return;
     }
-}
-
-void swap(cbor& left, cbor& right) {
-    left.swap(right);
 }
