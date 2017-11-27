@@ -199,47 +199,51 @@ int64_t cbor::to_signed() const {
     }
 }
 
-cbor::binary cbor::to_binary() const {
+static const cbor::binary empty_binary;
+cbor::binary const &cbor::to_binary() const {
     switch (m_type) {
     case cbor::TYPE_BINARY:
         return *m_binary;
     case cbor::TYPE_TAGGED:
         return m_array->front().to_binary();
     default:
-        return cbor::binary();
+        return empty_binary;
     }
 }
 
-cbor::string cbor::to_string() const {
+static const cbor::string empty_string;
+cbor::string const &cbor::to_string() const {
     switch (m_type) {
     case cbor::TYPE_STRING:
         return *m_string;
     case cbor::TYPE_TAGGED:
         return m_array->front().to_string();
     default:
-        return cbor::string();
+        return empty_string;
     }
 }
 
-cbor::array cbor::to_array() const {
+static const cbor::array empty_array;
+cbor::array const &cbor::to_array() const {
     switch (m_type) {
     case cbor::TYPE_ARRAY:
         return *m_array;
     case cbor::TYPE_TAGGED:
         return m_array->front().to_array();
     default:
-        return cbor::array();
+        return empty_array;
     }
 }
 
-cbor::map cbor::to_map() const {
+static const cbor::map empty_map;
+cbor::map const &cbor::to_map() const {
     switch (m_type) {
     case cbor::TYPE_MAP:
         return *m_map;
     case cbor::TYPE_TAGGED:
         return m_array->front().to_map();
     default:
-        return cbor::map();
+        return empty_map;
     }
 }
 
@@ -288,19 +292,19 @@ cbor::operator int() const {
     return to_signed();
 }
 
-cbor::operator cbor::binary() const {
+cbor::operator cbor::binary const &() const {
     return to_binary();
 }
 
-cbor::operator cbor::string() const {
+cbor::operator cbor::string const &() const {
     return to_string();
 }
 
-cbor::operator cbor::array() const {
+cbor::operator cbor::array const &() const {
     return to_array();
 }
 
-cbor::operator cbor::map() const {
+cbor::operator cbor::map const &() const {
     return to_map();
 }
 
@@ -329,12 +333,13 @@ uint64_t cbor::tag() const {
     }
 }
 
-cbor cbor::child() const {
+static cbor empty_cbor;
+cbor const &cbor::child() const {
     switch (this->m_type) {
     case cbor::TYPE_TAGGED:
         return m_array->front();
     default:
-        return cbor();
+        return empty_cbor;
     }
 }
 
@@ -391,7 +396,7 @@ bool cbor::operator != (const cbor &other) const {
     return !(*this == other);
 }
 
-void read_uint(std::istream &in, int &major, int &minor, uint64_t &value) {
+static void read_uint(std::istream &in, int &major, int &minor, uint64_t &value) {
     major = (in.peek() >> 5) & 7;
     minor = in.get() & 31;
     value = 0;
@@ -611,7 +616,7 @@ bool cbor::read(std::istream &in) {
     return true;
 }
 
-void write_uint8(std::ostream &out, int major, uint64_t value) {
+static void write_uint8(std::ostream &out, int major, uint64_t value) {
     if (value < 24) {
         out.put(major << 5 | value);
     } else {
@@ -620,13 +625,13 @@ void write_uint8(std::ostream &out, int major, uint64_t value) {
     }
 }
 
-void write_uint16(std::ostream &out, int major, uint64_t value) {
+static void write_uint16(std::ostream &out, int major, uint64_t value) {
     out.put(major << 5 | 25);
     out.put(value >> 8);
     out.put(value);
 }
 
-void write_uint32(std::ostream &out, int major, uint64_t value) {
+static void write_uint32(std::ostream &out, int major, uint64_t value) {
     out.put(major << 5 | 26);
     out.put(value >> 24);
     out.put(value >> 16);
@@ -634,7 +639,7 @@ void write_uint32(std::ostream &out, int major, uint64_t value) {
     out.put(value);
 }
 
-void write_uint64(std::ostream &out, int major, uint64_t value) {
+static void write_uint64(std::ostream &out, int major, uint64_t value) {
     out.put(major << 5 | 27);
     out.put(value >> 56);
     out.put(value >> 48);
@@ -646,7 +651,7 @@ void write_uint64(std::ostream &out, int major, uint64_t value) {
     out.put(value);
 }
 
-void write_uint(std::ostream &out, int major, uint64_t value) {
+static void write_uint(std::ostream &out, int major, uint64_t value) {
     if ((value >> 8) == 0) {
         write_uint8(out, major, value);
     } else if ((value >> 16) == 0) {
@@ -658,7 +663,7 @@ void write_uint(std::ostream &out, int major, uint64_t value) {
     }
 }
 
-void write_float(std::ostream &out, double value) {
+static void write_float(std::ostream &out, double value) {
     if (double(float(value)) == value) {
         union {
             float f;

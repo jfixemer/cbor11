@@ -75,26 +75,26 @@ public:
     
     uint64_t to_unsigned () const;
     int64_t to_signed () const;
-    cbor::binary to_binary () const;
-    cbor::string to_string () const;
-    cbor::array to_array () const;
-    cbor::map to_map () const;
+    cbor::binary const &to_binary() const;
+    cbor::string const &to_string() const;
+    cbor::array const &to_array() const;
+    cbor::map const &to_map() const;
     cbor::simple to_simple () const;
     bool to_bool () const;
     double to_float () const;
     
     operator unsigned () const;
     operator int () const;
-    operator cbor::binary () const;
-    operator cbor::string () const;
-    operator cbor::array () const;
-    operator cbor::map () const;
+    operator cbor::binary const &() const;
+    operator cbor::string const &() const;
+    operator cbor::array const &() const;
+    operator cbor::map const &() const;
     operator cbor::simple () const;
     operator bool () const;
     operator double () const;
     
     uint64_t tag () const;
-    cbor child () const;
+    cbor const &child() const;
     
     cbor::type_t type () const;
     
