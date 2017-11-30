@@ -14,9 +14,44 @@ bool test_incomplete_data()
 
 bool test_serialization_deserialization()
 {
+    // Test all half-floats.
+    cbor::binary half{0xf9, 0x00, 0x00};
+    int NaNcount = 2046;
+    for (int i = 0; i < 65536; ++i) {
+        half[1] = i>>8;
+        half[2] = i;
+        cbor dec = cbor::decode(half);
+        if (dec.to_float() != dec.to_float()) {
+            --NaNcount;
+            continue;
+        }
+        cbor::binary half2 = cbor::encode(dec);
+        if (half != half2) {
+            std::cout << cbor::debug(half) << " to " << cbor::debug(dec) << " to " << cbor::debug(half2) << std::endl;
+            return false;
+        }
+    }
+    if (NaNcount) {
+        std::cout << NaNcount << std::endl;
+        return false;
+    }
+    // Test 100000 random floats.
+    union {
+        uint32_t n;
+        float f;
+    };
+    n = 0;
+    for (int i = 0; i < 100000; ++i) {
+        n = 1664525*n + 1013904223;
+        float g = cbor::decode(cbor::encode(f)).to_float();
+        if (f != g && (f == f || g == g)) {
+            std::cout << f << " to " << g << std::endl;
+            return false;
+        }
+    }
+
     const cbor item = cbor::array {
-            12,
-            -12,
+            cbor::array {24, 23, 12, -12, -24, -25},
             "Hello",
             cbor::binary {0xff, 0xff},
             cbor::map {
@@ -36,8 +71,10 @@ bool test_serialization_deserialization()
             cbor::tagged(1024, -1.5),
             1000000000000000,
             1/0.,
+            -1/0.,
             0/0.,
-            1.2
+            1.2,
+            1.2f
     };
 
     // Convert to diagnostic notation for easy debugging
@@ -67,7 +104,7 @@ int main(int argc, char **argv)
         { "test_incomplete_data", &test_incomplete_data }
     };
 
-    for(int i = 0; i < sizeof(tests); i++) {
+    for(unsigned i = 0; i < sizeof(tests); i++) {
         if(tests[i].first == argv[1]) {
             return !tests[i].second();
         }

@@ -342,6 +342,9 @@ bool cbor::operator < (const cbor &other) const {
             return m_tagged->m_tag < other.m_tagged->m_tag;
         }
         return m_tagged->m_child < other.m_tagged->m_child;
+    case cbor::TYPE_FLOAT:
+        // Sorting -Inf < -1 < -0 = +0 < 1 < Inf < NaN
+        return m_float < other.m_float /*|| (m_float == 0 && other.m_float == 0 && std::signbit(m_float) > std::signbit(other.m_float))*/ || (other.m_float != other.m_float && m_float == m_float);
     default:
         return m_unsigned < other.m_unsigned;
     }
@@ -362,6 +365,9 @@ bool cbor::operator == (const cbor &other) const {
         return *m_map == *other.m_map;
     case cbor::TYPE_TAGGED:
         return m_tagged->m_tag == other.m_tagged->m_tag && m_tagged->m_child == other.m_tagged->m_child;
+    case cbor::TYPE_FLOAT:
+        // Sorting -Inf < -1 < -0 = +0 < 1 < Inf < NaN
+        return m_float == other.m_float ? true /*m_float != 0 || std::signbit(m_float) == std::signbit(other.m_float)*/ : m_float != m_float && other.m_float != other.m_float;
     default:
         return m_unsigned == other.m_unsigned;
     }
@@ -637,13 +643,31 @@ static void write_uint(std::ostream &out, int major, uint64_t value) {
 }
 
 static void write_float(std::ostream &out, double value) {
-    if (double(float(value)) == value) {
+    if (!std::isfinite(value)) {
+        write_uint16(out, 7, value != value ? 0xffff : value > 0 ? 0x7c00 : 0xfc00);
+    } else if (double(float(value)) == value) {
         union {
             float f;
             uint32_t i;
         };
         f = value;
-        write_uint32(out, 7, i);
+        int sign = (i >> 31) & 1;
+        int exp = int((i >> 23) & 0xff) - 0x7f;
+        int bits = (i & 0x7fffff) | 0x800000;
+        int denShift = -exp - 14 + 23 - 10;
+        if (exp == -0x7f && bits == 0x800000) {
+            // Zero half-float.
+            write_uint16(out, 7, (sign << 15) | 0x0000);
+        } else if (exp < -0x0e && denShift < 24 && (bits & ((1 << denShift) - 1)) == 0) {
+            // Denormal half-float.
+            write_uint16(out, 7, (sign << 15) | 0x0000 | (bits >> denShift));
+        } else if (exp >= -0x0e && exp <= 0x0f && (bits & 0x001fff) == 0) {
+            // Normal half-float.
+            write_uint16(out, 7, (sign << 15) | ((exp + 0x0f) << 10) | ((bits & 0x7fffff) >> (23 - 10)));
+        } else {
+            // Float.
+            write_uint32(out, 7, i);
+        }
     } else {
         union {
             double f;
