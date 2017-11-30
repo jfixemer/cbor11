@@ -51,6 +51,7 @@ public:
     cbor (const cbor::map &value);
     cbor (cbor::map &&value);
     static cbor tagged(uint64_t tag, const cbor &value);
+    static cbor tagged(uint64_t tag, cbor &&value);
     cbor (cbor::simple value = cbor::SIMPLE_UNDEFINED);
     cbor (bool value);
     cbor (float value);
@@ -121,25 +122,32 @@ public:
 
     void swap(cbor &other);
 private:
+    struct tagged_t;
+
     cbor::type_t m_type;
     union
     {
         uint64_t m_unsigned;
-        int64_t m_integer;
         double m_float;
-    };
-    union
-    {
         cbor::binary *m_binary;
         cbor::string *m_string;
         cbor::array *m_array;
         cbor::map *m_map;
+        tagged_t *m_tagged;
     };
 
     void destroy();
 };
 
 void swap(cbor& left, cbor& right);
+
+// private
+
+struct cbor::tagged_t
+{
+    cbor m_child;
+    uint64_t m_tag;
+};
 
 // Trivial inline function implementations
 

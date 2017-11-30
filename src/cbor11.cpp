@@ -5,12 +5,12 @@
 cbor::cbor(unsigned value) : m_type(cbor::TYPE_UNSIGNED), m_unsigned(value) { }
 
 cbor::cbor(int value) : m_type(value < 0 ? cbor::TYPE_NEGATIVE : cbor::TYPE_UNSIGNED),
-    m_integer(value < 0 ? -1 - value : value) { }
+    m_unsigned(value < 0 ? -1 - value : value) { }
 
 cbor::cbor(uint64_t value) : m_type(cbor::TYPE_UNSIGNED), m_unsigned(value) { }
 
 cbor::cbor(int64_t value) : m_type(value < 0 ? cbor::TYPE_NEGATIVE : cbor::TYPE_UNSIGNED),
-    m_integer(value < 0 ? -1 - value : value) { }
+    m_unsigned(value < 0 ? -1 - value : value) { }
 
 cbor::cbor(const cbor::binary &value) : m_type(cbor::TYPE_BINARY), m_binary(new binary(value)) { }
 
@@ -33,8 +33,14 @@ cbor::cbor(cbor::map &&value) : m_type(cbor::TYPE_MAP), m_map(new map(std::move(
 cbor cbor::tagged(uint64_t tag, const cbor &value) {
     cbor result;
     result.m_type = cbor::TYPE_TAGGED;
-    result.m_unsigned = tag;
-    result.m_array = new cbor::array(1, value);
+    result.m_tagged = new tagged_t{value, tag};
+    return result;
+}
+
+cbor cbor::tagged(uint64_t tag, cbor &&value) {
+    cbor result;
+    result.m_type = cbor::TYPE_TAGGED;
+    result.m_tagged = new tagged_t{std::move(value), tag};
     return result;
 }
 
@@ -57,20 +63,24 @@ cbor::cbor(const cbor& other) : m_type(other.m_type), m_unsigned(other.m_unsigne
         case TYPE_STRING:
             m_string = new string(*other.m_string);
             break;
-        case TYPE_TAGGED:
-            // fallthrough
         case TYPE_ARRAY:
             m_array = new array(*other.m_array);
             break;
         case TYPE_MAP:
             m_map = new map(*other.m_map);
             break;
+        case TYPE_TAGGED:
+            m_tagged = new tagged_t(*other.m_tagged);
+            break;
         default:
             break;
     }
 }
 
-cbor::cbor(cbor&& other) : m_type(other.m_type), m_unsigned(other.m_unsigned), m_binary(other.m_binary) { 
+cbor::cbor(cbor &&other) : m_type(other.m_type), m_unsigned(other.m_unsigned) {
+    if (sizeof(uint64_t) < sizeof(void *)) {
+        m_binary = other.m_binary;
+    }
     other.m_binary = nullptr;
 }
 
@@ -89,13 +99,14 @@ cbor& cbor::operator = (const cbor& other) {
         case TYPE_STRING:
             m_string = new string(*other.m_string);
             break;
-        case TYPE_TAGGED:
-            // fallthrough
         case TYPE_ARRAY:
             m_array = new array(*other.m_array);
             break;
         case TYPE_MAP:
             m_map = new map(*other.m_map);
+            break;
+        case TYPE_TAGGED:
+            m_tagged = new tagged_t(*other.m_tagged);
             break;
         default:
             return *this;
@@ -113,8 +124,11 @@ cbor& cbor::operator = (cbor&& other) {
 
 void cbor::swap(cbor& other) {
     std::swap(m_type, other.m_type);
-    std::swap(m_unsigned, other.m_unsigned);
-    std::swap(m_binary, other.m_binary);
+    if (sizeof(uint64_t) < sizeof(void *)) {
+        std::swap(m_binary, other.m_binary);
+    } else {
+        std::swap(m_unsigned, other.m_unsigned);
+    }
 }
 
 bool cbor::is_unsigned() const {
@@ -178,9 +192,9 @@ uint64_t cbor::to_unsigned() const {
     case cbor::TYPE_UNSIGNED:
         return m_unsigned;
     case cbor::TYPE_NEGATIVE:
-        return m_integer;
+        return -1 - m_unsigned;
     case cbor::TYPE_TAGGED:
-        return m_array->front().to_unsigned();
+        return m_tagged->m_child.to_unsigned();
     case cbor::TYPE_FLOAT:
         return m_float;
     default:
@@ -191,11 +205,11 @@ uint64_t cbor::to_unsigned() const {
 int64_t cbor::to_signed() const {
     switch (m_type) {
     case cbor::TYPE_UNSIGNED:
-        return m_integer;
+        return m_unsigned;
     case cbor::TYPE_NEGATIVE:
-        return -1 - m_integer;
+        return -1 - m_unsigned;
     case cbor::TYPE_TAGGED:
-        return m_array->front().to_signed();
+        return m_tagged->m_child.to_signed();
     case cbor::TYPE_FLOAT:
         return m_float;
     default:
@@ -209,7 +223,7 @@ cbor::binary const &cbor::to_binary() const {
     case cbor::TYPE_BINARY:
         return *m_binary;
     case cbor::TYPE_TAGGED:
-        return m_array->front().to_binary();
+        return m_tagged->m_child.to_binary();
     default:
         return empty_binary;
     }
@@ -221,7 +235,7 @@ cbor::string const &cbor::to_string() const {
     case cbor::TYPE_STRING:
         return *m_string;
     case cbor::TYPE_TAGGED:
-        return m_array->front().to_string();
+        return m_tagged->m_child.to_string();
     default:
         return empty_string;
     }
@@ -233,7 +247,7 @@ cbor::array const &cbor::to_array() const {
     case cbor::TYPE_ARRAY:
         return *m_array;
     case cbor::TYPE_TAGGED:
-        return m_array->front().to_array();
+        return m_tagged->m_child.to_array();
     default:
         return empty_array;
     }
@@ -245,7 +259,7 @@ cbor::map const &cbor::to_map() const {
     case cbor::TYPE_MAP:
         return *m_map;
     case cbor::TYPE_TAGGED:
-        return m_array->front().to_map();
+        return m_tagged->m_child.to_map();
     default:
         return empty_map;
     }
@@ -254,7 +268,7 @@ cbor::map const &cbor::to_map() const {
 cbor::simple cbor::to_simple() const {
     switch (m_type) {
     case cbor::TYPE_TAGGED:
-        return m_array->front().to_simple();
+        return m_tagged->m_child.to_simple();
     case cbor::TYPE_SIMPLE:
         return cbor::simple(m_unsigned);
     default:
@@ -265,7 +279,7 @@ cbor::simple cbor::to_simple() const {
 bool cbor::to_bool() const {
     switch (m_type) {
     case cbor::TYPE_TAGGED:
-        return m_array->front().to_bool();
+        return m_tagged->m_child.to_bool();
     case cbor::TYPE_SIMPLE:
         return m_unsigned == cbor::SIMPLE_TRUE;
     default:
@@ -278,9 +292,9 @@ double cbor::to_float() const {
     case cbor::TYPE_UNSIGNED:
         return double(m_unsigned);
     case cbor::TYPE_NEGATIVE:
-        return ldexp(-1 - (m_integer >> 32), 32) + (-1 - (m_integer << 32 >> 32));
+        return m_unsigned + 1 == 0 ? -18446744073709551616. : -double(m_unsigned + 1);
     case cbor::TYPE_TAGGED:
-        return m_array->front().to_float();
+        return m_tagged->m_child.to_float();
     case cbor::TYPE_FLOAT:
         return m_float;
     default:
@@ -291,7 +305,7 @@ double cbor::to_float() const {
 uint64_t cbor::tag() const {
     switch (m_type) {
     case cbor::TYPE_TAGGED:
-        return m_unsigned;
+        return m_tagged->m_tag;
     default:
         return 0;
     }
@@ -301,56 +315,53 @@ static cbor empty_cbor;
 cbor const &cbor::child() const {
     switch (this->m_type) {
     case cbor::TYPE_TAGGED:
-        return m_array->front();
+        return m_tagged->m_child;
     default:
         return empty_cbor;
     }
 }
 
 bool cbor::operator < (const cbor &other) const {
-    if (this->m_type < other.m_type) {
-        return true;
-    }
-    if (this->m_type > other.m_type) {
-        return false;
+    if (m_type != other.m_type) {
+        bool comparingPositiveWithNegative = m_type + other.m_type == 1;
+        return (m_type < other.m_type) ^ comparingPositiveWithNegative;
     }
     switch (m_type) {
+    case cbor::TYPE_NEGATIVE:
+        return m_unsigned > other.m_unsigned;  // Sign flipped.
     case cbor::TYPE_BINARY:
-        return m_binary < other.m_binary;
+        return *m_binary < *other.m_binary;
     case cbor::TYPE_STRING:
-        return m_string < other.m_string;
+        return *m_string < *other.m_string;
     case cbor::TYPE_ARRAY:
-        return m_array < other.m_array;
+        return *m_array < *other.m_array;
     case cbor::TYPE_MAP:
-        return m_map < other.m_map;
+        return *m_map < *other.m_map;
     case cbor::TYPE_TAGGED:
-        if (m_unsigned == other.m_unsigned) {
-            return m_array->front() < other.m_array->front();
+        if (m_tagged->m_tag != other.m_tagged->m_tag) {
+            return m_tagged->m_tag < other.m_tagged->m_tag;
         }
-        // fallthrough
+        return m_tagged->m_child < other.m_tagged->m_child;
     default:
         return m_unsigned < other.m_unsigned;
     }
 }
 
 bool cbor::operator == (const cbor &other) const {
-    if (this->m_type != other.m_type) {
+    if (m_type != other.m_type) {
         return false;
     }
     switch (m_type) {
     case cbor::TYPE_BINARY:
-        return m_binary == other.m_binary;
+        return *m_binary == *other.m_binary;
     case cbor::TYPE_STRING:
-        return m_string == other.m_string;
+        return *m_string == *other.m_string;
     case cbor::TYPE_ARRAY:
-        return m_array == other.m_array;
+        return *m_array == *other.m_array;
     case cbor::TYPE_MAP:
-        return m_map == other.m_map;
+        return *m_map == *other.m_map;
     case cbor::TYPE_TAGGED:
-        if (m_unsigned != other.m_unsigned) {
-            return false;
-        }
-        return m_array == other.m_array;
+        return m_tagged->m_tag == other.m_tagged->m_tag && m_tagged->m_child == other.m_tagged->m_child;
     default:
         return m_unsigned == other.m_unsigned;
     }
@@ -400,7 +411,7 @@ bool cbor::read(std::istream &in) {
             return false;
         }
         item.m_type = cbor::TYPE_NEGATIVE;
-        item.m_integer = value;
+        item.m_unsigned = value;
         break;
     case 2:
         if (minor > 27 && minor < 31) {
@@ -507,11 +518,9 @@ bool cbor::read(std::istream &in) {
             return false;
         }
         item.m_type = cbor::TYPE_TAGGED;
-        item.m_unsigned = value;
-        item.m_array = new array;
         cbor child;
         child.read(in);
-        item.m_array->emplace_back(std::move(child));
+        item.m_tagged = new tagged_t{std::move(child), value};
         break;
     }
     case 7:
@@ -647,7 +656,7 @@ void cbor::write(std::ostream &out) const {
         write_uint(out, 0, m_unsigned);
         break;
     case cbor::TYPE_NEGATIVE:
-        write_uint(out, 1, m_integer);
+        write_uint(out, 1, m_unsigned);
         break;
     case cbor::TYPE_BINARY:
         write_uint(out, 2, m_binary->size());
@@ -671,8 +680,8 @@ void cbor::write(std::ostream &out) const {
         }
         break;
     case cbor::TYPE_TAGGED:
-        write_uint(out, 6, m_unsigned);
-        m_array->front().write(out);
+        write_uint(out, 6, m_tagged->m_tag);
+        m_tagged->m_child.write(out);
         break;
     case cbor::TYPE_SIMPLE:
         write_uint8(out, 7, m_unsigned);
@@ -712,10 +721,10 @@ cbor::string cbor::debug(const cbor &in) {
         out << in.m_unsigned;
         break;
     case cbor::TYPE_NEGATIVE:
-        if (1 + in.m_integer == 0) {
+        if (1 + in.m_unsigned == 0) {
             out << "-18446744073709551616";
         } else {
-            out << "-" << 1 + in.m_integer;
+            out << "-" << 1 + in.m_unsigned;
         }
         break;
     case cbor::TYPE_BINARY:
@@ -780,7 +789,7 @@ cbor::string cbor::debug(const cbor &in) {
         out << "}";
         break;
     case cbor::TYPE_TAGGED:
-        out << in.m_unsigned << "(" << cbor::debug(in.m_array->front()) << ")";
+        out << in.m_tagged->m_tag << "(" << cbor::debug(in.m_tagged->m_child) << ")";
         break;
     case cbor::TYPE_SIMPLE:
         switch (in.m_unsigned) {
@@ -829,8 +838,6 @@ void cbor::destroy()
             delete m_string;
             m_string = nullptr;
             break;
-        case TYPE_TAGGED:
-            // fallthrough
         case TYPE_ARRAY:
             delete m_array;
             m_array = nullptr;
@@ -838,6 +845,10 @@ void cbor::destroy()
         case TYPE_MAP:
             delete m_map;
             m_map = nullptr;
+            break;
+        case TYPE_TAGGED:
+            delete m_tagged;
+            m_tagged = nullptr;
             break;
         default:
             return;
