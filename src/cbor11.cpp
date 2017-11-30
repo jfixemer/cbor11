@@ -378,7 +378,7 @@ static void read_uint(std::istream &in, int &major, int &minor, uint64_t &value)
         value |= (unsigned long long) in.get() << 40;
         value |= (unsigned long long) in.get() << 32;
     case 26:
-        value |= in.get() << 24;
+        value |= (unsigned)in.get() << 24;
         value |= in.get() << 16;
     case 25:
         value |= in.get() << 8;
@@ -569,9 +569,13 @@ bool cbor::read(std::istream &in) {
         }
         case 27:
             item.m_type = cbor::TYPE_FLOAT;
-            item.m_float = value;
+            item.m_unsigned = value;
             break;
         default:
+            if (minor > 27 && minor < 31) {
+                in.setstate(std::ios_base::failbit);
+                return false;
+            }
             item.m_type = cbor::TYPE_SIMPLE;
             item.m_unsigned = value;
         }

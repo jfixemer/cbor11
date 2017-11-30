@@ -1,5 +1,6 @@
 #include "cbor11.h"
 #include <iostream>
+#include <iomanip>
 #include <string>
 #include <utility>
 
@@ -21,13 +22,21 @@ bool test_serialization_deserialization()
             cbor::map {
                 {"CH", "Switzerland"},
                 {"DK", "Denmark"},
-                {"JP", "Japan"}
+                {"JP", "Japan"},
+                {0, "zero"},
+                {-1, "minus one"},
+                {1, "one"},
+                {-2, "minus two"}
             },
             cbor::array {"Alice", "Bob", 72, "Eve"},
             cbor::simple (0),
             false,
             nullptr,
             cbor::undefined,
+            cbor::tagged(1024, -1.5),
+            1000000000000000,
+            1/0.,
+            0/0.,
             1.2
     };
 
@@ -35,8 +44,15 @@ bool test_serialization_deserialization()
     std::cout << cbor::debug (item) << std::endl;
     // Encode
     cbor::binary data = cbor::encode(item);
+    std::cout << "<";
+    for (uint8_t b : data) std::cout << " " << std::hex << std::setfill('0') << std::setw(2) << int(b);
+    std::cout << " >" << std::endl;
     // Decode (if invalid data is given cbor::undefined is returned)
     const auto output = cbor::decode(data);
+    if (output != item) {
+        std::cout << cbor::debug (output) << std::endl;
+        return false;
+    }
     return !output.is_undefined();
 }
 
