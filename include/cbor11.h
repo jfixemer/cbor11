@@ -42,10 +42,14 @@ public:
     cbor (int value);
     cbor (int64_t value);
     cbor (const cbor::binary &value);
+    cbor (cbor::binary &&value);
     cbor (const cbor::string &value);
+    cbor (cbor::string &&value);
     cbor (const char *value);
     cbor (const cbor::array &value);
+    cbor (cbor::array &&value);
     cbor (const cbor::map &value);
+    cbor (cbor::map &&value);
     static cbor tagged(uint64_t tag, const cbor &value);
     cbor (cbor::simple value = cbor::SIMPLE_UNDEFINED);
     cbor (bool value);

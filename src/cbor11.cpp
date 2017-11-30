@@ -14,13 +14,21 @@ cbor::cbor(int64_t value) : m_type(value < 0 ? cbor::TYPE_NEGATIVE : cbor::TYPE_
 
 cbor::cbor(const cbor::binary &value) : m_type(cbor::TYPE_BINARY), m_binary(new binary(value)) { }
 
+cbor::cbor(cbor::binary &&value) : m_type(cbor::TYPE_BINARY), m_binary(new binary(std::move(value))) { }
+
 cbor::cbor(const cbor::string &value) : m_type(cbor::TYPE_STRING), m_string(new string(value)) { }
+
+cbor::cbor(cbor::string &&value) : m_type(cbor::TYPE_STRING), m_string(new string(std::move(value))) { }
 
 cbor::cbor(const char *value) : m_type(cbor::TYPE_STRING), m_string(new string(value)) { }
 
 cbor::cbor(const cbor::array &value) : m_type(cbor::TYPE_ARRAY), m_array(new array(value)) { }
 
+cbor::cbor(cbor::array &&value) : m_type(cbor::TYPE_ARRAY), m_array(new array(std::move(value))) { }
+
 cbor::cbor(const cbor::map &value) : m_type(cbor::TYPE_MAP), m_map(new map(value)) { }
+
+cbor::cbor(cbor::map &&value) : m_type(cbor::TYPE_MAP), m_map(new map(std::move(value))) { }
 
 cbor cbor::tagged(uint64_t tag, const cbor &value) {
     cbor result;
