@@ -50,6 +50,10 @@ bool test_serialization_deserialization()
         }
     }
 
+    using nld = std::numeric_limits<double>;
+    static_assert(nld::has_quiet_NaN, "Quiet NaN is not avaialble.");
+    static_assert(nld::infinity, "Infinity is not avaialble.");
+
     const cbor item = cbor::array {
             cbor::array {24, 23, 12, -12, -24, -25},
             "Hello",
@@ -70,9 +74,8 @@ bool test_serialization_deserialization()
             cbor::undefined,
             cbor::tagged(1024, -1.5),
             1000000000000000,
-            1/0.,
-            -1/0.,
-            0/0.,
+            nld::infinity(),
+            nld::quiet_NaN(),
             1.2,
             1.2f
     };
