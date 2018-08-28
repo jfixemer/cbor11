@@ -1,6 +1,13 @@
 cmake_minimum_required (VERSION 3.1)
 project(cbor11)
 set(CMAKE_CXX_STANDARD 11)
+
+IF(WIN32)
+  if(MSVC)
+     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zc:__cplusplus")
+  endif()
+ENDIF()
+
 add_library(cbor11 src/cbor11.cpp)
 target_include_directories(cbor11 PRIVATE include)
 
