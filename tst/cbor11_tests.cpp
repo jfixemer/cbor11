@@ -3,6 +3,7 @@
 #include <iomanip>
 #include <string>
 #include <utility>
+#include <limits>
 
 bool test_incomplete_data()
 {
@@ -52,7 +53,7 @@ bool test_serialization_deserialization()
 
     using nld = std::numeric_limits<double>;
     static_assert(nld::has_quiet_NaN, "Quiet NaN is not avaialble.");
-    static_assert(nld::infinity, "Infinity is not avaialble.");
+    static_assert(nld::has_infinity, "Infinity is not avaialble.");
 
     const cbor item = cbor::array {
             cbor::array {24, 23, 12, -12, -24, -25},

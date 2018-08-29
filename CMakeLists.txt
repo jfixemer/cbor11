@@ -23,7 +23,7 @@ endif()
 add_test(incomplete_data cbor11-tests "test_incomplete_data")
 add_test(complex cbor11-tests "serialize_deserialize_complex_structure")
 
-install (FILES cbor11.h DESTINATION "include/cbor11")
+install (FILES include/cbor11.h DESTINATION "include/cbor11")
 install (
     TARGETS cbor11
     EXPORT "cbor11-config"
