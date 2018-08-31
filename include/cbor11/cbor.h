@@ -11,6 +11,8 @@
 #include <initializer_list>
 #endif
 
+namespace cbor11
+{
 class cbor {
 public:
     enum type_t {
@@ -213,4 +215,6 @@ inline cbor::~cbor() {
 
 inline void swap(cbor &left, cbor &right) {
     left.swap(right);
+}
+
 }

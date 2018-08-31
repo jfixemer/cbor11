@@ -1,6 +1,14 @@
 cmake_minimum_required (VERSION 3.1)
-project(cbor11)
+set(CBOR11_VERSION 0.5.0)
+
+include(GNUInstallDirs)
+enable_testing()
+
+project(cbor11 VERSION ${CBOR11_VERSION} LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 11)
+
+option(CBOR11_BUILD_TESTS "Build cbor11 unittests." ON)
+option(CBOR11_BUILD_ASAN "Build cbor11 unittests with address sanitizer (gcc/clang)" OFF)
 
 IF(WIN32)
   if(MSVC)
@@ -8,29 +16,19 @@ IF(WIN32)
   endif()
 ENDIF()
 
-add_library(cbor11 src/cbor11.cpp)
-target_include_directories(cbor11 PRIVATE include)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-include(CTest)
-add_executable(cbor11-tests tst/cbor11_tests.cpp)
-target_link_libraries(cbor11-tests cbor11)
-target_include_directories(cbor11-tests PRIVATE include)
-if(ENABLE_ASAN)
-    target_compile_options(cbor11 PUBLIC "-fsanitize=address,undefined")
-    target_link_libraries(cbor11 INTERFACE "-fsanitize=address,undefined")
+add_subdirectory(src)
+
+if(CBOR11_BUILD_TESTS)
+    add_subdirectory(tst)
 endif()
 
-add_test(incomplete_data cbor11-tests "test_incomplete_data")
-add_test(complex cbor11-tests "serialize_deserialize_complex_structure")
-
-install (FILES include/cbor11.h DESTINATION "include/cbor11")
-install (
-    TARGETS cbor11
-    EXPORT "cbor11-config"
-    ARCHIVE DESTINATION lib
-    LIBRARY DESTINATION lib
-    COMPONENT library
-    )
+install (DIRECTORY "${PROJECT_SOURCE_DIR}/include/" 
+    DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}" )
 
 export(TARGETS cbor11 FILE "cbor11-config.cmake")
-install(EXPORT cbor11-config DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/cbor11/cmake/")
+
+install(EXPORT cbor11-config 
+    NAMESPACE ${cmake_package_name}:: 
+    DESTINATION  "${CMAKE_INSTALL_LIBDIR}/cmake/${cmake_package_name}")

@@ -1,7 +1,8 @@
-#include "cbor11.h"
+#include "cbor11/cbor.h"
 #include <cmath>
 #include <sstream>
 
+using namespace cbor11;
 cbor::cbor(unsigned value) : m_type(cbor::TYPE_UNSIGNED), m_unsigned(value) { }
 
 cbor::cbor(int value) : m_type(value < 0 ? cbor::TYPE_NEGATIVE : cbor::TYPE_UNSIGNED),

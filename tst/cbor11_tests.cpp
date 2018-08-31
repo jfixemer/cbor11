@@ -1,9 +1,11 @@
-#include "cbor11.h"
+#include "cbor11/cbor.h"
 #include <iostream>
 #include <iomanip>
 #include <string>
 #include <utility>
 #include <limits>
+
+using namespace cbor11;
 
 bool test_incomplete_data()
 {
