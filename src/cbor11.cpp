@@ -383,11 +383,14 @@ static void read_uint(std::istream &in, int &major, int &minor, uint64_t &value)
         value |= (unsigned long long) in.get() << 48;
         value |= (unsigned long long) in.get() << 40;
         value |= (unsigned long long) in.get() << 32;
+        //fallthrough
     case 26:
         value |= (unsigned)in.get() << 24;
         value |= in.get() << 16;
+        //fallthrough
     case 25:
         value |= in.get() << 8;
+        //fallthrough
     case 24:
         value |= in.get();
         break;
@@ -776,6 +779,9 @@ cbor::string cbor::debug(const cbor &in) {
                 break;
             case '\r':
                 out << "\\r";
+                break;
+            case '\t':
+                out << "\\t";
                 break;
             case '\"':
                 out << "\\\"";
