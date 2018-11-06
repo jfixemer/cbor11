@@ -647,7 +647,7 @@ static void write_uint(std::ostream &out, int major, uint64_t value) {
 
 static void write_float(std::ostream &out, double value) {
     if (!std::isfinite(value)) {
-        write_uint16(out, 7, value != value ? 0xffff : value > 0 ? 0x7c00 : 0xfc00);
+        write_uint16(out, 7, value != value ? 0x7e00 : value > 0 ? 0x7c00 : 0xfc00);
     } else if (double(float(value)) == value) {
         union {
             float f;
