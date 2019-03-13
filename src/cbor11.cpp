@@ -383,11 +383,14 @@ static void read_uint(std::istream &in, int &major, int &minor, uint64_t &value)
         value |= (unsigned long long) in.get() << 48;
         value |= (unsigned long long) in.get() << 40;
         value |= (unsigned long long) in.get() << 32;
+        //fallthrough
     case 26:
         value |= (unsigned)in.get() << 24;
         value |= in.get() << 16;
+        //fallthrough
     case 25:
         value |= in.get() << 8;
+        //fallthrough
     case 24:
         value |= in.get();
         break;
@@ -644,7 +647,7 @@ static void write_uint(std::ostream &out, int major, uint64_t value) {
 
 static void write_float(std::ostream &out, double value) {
     if (!std::isfinite(value)) {
-        write_uint16(out, 7, value != value ? 0xffff : value > 0 ? 0x7c00 : 0xfc00);
+        write_uint16(out, 7, value != value ? 0x7e00 : value > 0 ? 0x7c00 : 0xfc00);
     } else if (double(float(value)) == value) {
         union {
             float f;
@@ -776,6 +779,9 @@ cbor::string cbor::debug(const cbor &in) {
                 break;
             case '\r':
                 out << "\\r";
+                break;
+            case '\t':
+                out << "\\t";
                 break;
             case '\"':
                 out << "\\\"";
